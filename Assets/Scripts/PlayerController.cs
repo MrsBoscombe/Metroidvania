@@ -6,10 +6,20 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Horizontal Movement Settings")]
     [SerializeField] float walkSpeed = 1.0f;
+    [Header("Vertical Movement Settings")]
     [SerializeField] float jumpForce = 45.0f;
+    private int jumpBufferCounter = 0;
+    [SerializeField] private int jumpBufferFrames;
+    // Coyote time allows the user a small margin of error when 
+    // jumping off of a platform
+    private float coyoteTimeCounter = 0;
+    [SerializeField] private float coyoteTime;
+    private int airJumpCounter = 0;
+    [SerializeField] private int maxAirJumps; 
     private float xAxis = 0f;
     private Rigidbody2D rb;
     private Animator anim;
+    private PlayerStateList pState;
     [Header("Ground Check Settings")]
     [SerializeField] private Transform groundCheckPoint;
     [SerializeField] private float groundCheckY = 0.2f;
@@ -26,6 +36,7 @@ public class PlayerController : MonoBehaviour
         else{
             Instance = this;
         }
+        
     }
 
     // Start is called before the first frame update
@@ -33,12 +44,14 @@ public class PlayerController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        pState = GetComponent<PlayerStateList>();
     }
 
     // Update is called once per frame
     void Update()
     {
         GetInputs();
+        UpdateJumpVariables();
         Flip();    // Original Video has Flip() call after Jump(). I prefer to change the player's direction before he starts moving. 
         Move();
         Jump();
@@ -76,12 +89,39 @@ public class PlayerController : MonoBehaviour
         // Allow the player to stop the jump by releasing the jump button (spacebar)
         if (Input.GetButtonUp("Jump") && (rb.velocity.y > 0)){
             rb.velocity = new Vector2(rb.velocity.x, 0);
+            pState.jumping = false;
         }
-        // Making sure the player is grounded when the jump button (spacebar) is pressed
-        if (Input.GetButtonDown("Jump") && Grounded()){
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);   
+        if (!pState.jumping){
+
+            // Making sure the player is able to jump when the jump button (spacebar) is pressed
+            if (jumpBufferCounter > 0 && coyoteTimeCounter > 0){
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);   
+                pState.jumping = true;
+            }
+            else if (!Grounded() && airJumpCounter < maxAirJumps && Input.GetButtonDown("Jump")){
+                pState.jumping = true;
+                airJumpCounter++;
+                rb.velocity = new Vector2(rb.velocity.x, jumpForce);   
+            }
+        }
+        anim.SetBool("Jumping", !Grounded());
+    }
+
+    void UpdateJumpVariables(){
+        if (Grounded()){
+            pState.jumping = false;
+            coyoteTimeCounter = coyoteTime;
+            airJumpCounter = 0;
+        }
+        else{
+            coyoteTimeCounter -= Time.deltaTime;
         }
 
-        anim.SetBool("Jumping", !Grounded());
+        if (Input.GetButtonDown("Jump")){
+            jumpBufferCounter = jumpBufferFrames;
+        }
+        else{
+            jumpBufferCounter--;
+        }
     }
 }
