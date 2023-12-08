@@ -6,10 +6,13 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Horizontal Movement Settings")]
     [SerializeField] float walkSpeed = 1.0f;
+    [Space(5)]
+
     [Header("Vertical Movement Settings")]
     [SerializeField] float jumpForce = 45.0f;
     private int jumpBufferCounter = 0;
     [SerializeField] private int jumpBufferFrames;
+
     // Coyote time allows the user a small margin of error when 
     // jumping off of a platform
     private float coyoteTimeCounter = 0;
@@ -20,11 +23,23 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Animator anim;
     private PlayerStateList pState;
+    [Space(5)]
+    
     [Header("Ground Check Settings")]
     [SerializeField] private Transform groundCheckPoint;
     [SerializeField] private float groundCheckY = 0.2f;
     [SerializeField] private float groundCheckX = 0.5f;
     [SerializeField] private LayerMask whatIsGround;
+
+    private bool canDash = true;
+    private bool dashed = false;
+    private float gravity;
+    [Space(5)]
+
+    [Header("Dash Settings")]
+    [SerializeField] private float dashSpeed;
+    [SerializeField] private float dashTime;
+    [SerializeField] private float dashCooldown;
 
     // Singleton Pattern created here
     public static PlayerController Instance;
@@ -45,6 +60,8 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         pState = GetComponent<PlayerStateList>();
+        // keep normal gravity stored in variable
+        gravity = rb.gravityScale;
     }
 
     // Update is called once per frame
@@ -52,10 +69,12 @@ public class PlayerController : MonoBehaviour
     {
         GetInputs();
         UpdateJumpVariables();
+        if (pState.dashing)
+            return;
         Flip();    // Original Video has Flip() call after Jump(). I prefer to change the player's direction before he starts moving. 
         Move();
         Jump();
-
+        StartDash();
     }
 
     void GetInputs(){
@@ -77,6 +96,29 @@ public class PlayerController : MonoBehaviour
         anim.SetBool("Walking", rb.velocity.x != 0 && Grounded());
     }
 
+    void StartDash(){
+        if (Input.GetButtonDown("Dash") && canDash && !dashed){
+            StartCoroutine(Dash());
+            dashed = true;
+        }
+    }
+
+    IEnumerator Dash(){
+        canDash = false;
+        pState.dashing = true;
+        anim.SetTrigger("Dashing");
+        rb.gravityScale = 0;
+        rb.velocity = new Vector2(transform.localScale.x * dashSpeed, 0);
+        yield return new WaitForSeconds(dashTime);
+        // reset to non-dashing
+        rb.gravityScale = gravity;
+        pState.dashing = false;
+        yield return new WaitForSeconds(dashCooldown);
+        canDash = true;
+        if (Grounded()){
+            dashed = false;
+        }
+    }
     public bool Grounded(){
         if (Physics2D.Raycast(groundCheckPoint.position, Vector2.down, groundCheckY, whatIsGround) || Physics2D.Raycast(groundCheckPoint.position + new Vector3(groundCheckX, 0, 0), Vector2.down, groundCheckY, whatIsGround)
             || Physics2D.Raycast(groundCheckPoint.position - new Vector3(groundCheckX, 0, 0), Vector2.down, groundCheckY, whatIsGround)){

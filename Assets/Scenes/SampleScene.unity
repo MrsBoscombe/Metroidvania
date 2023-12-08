@@ -576,6 +576,9 @@ MonoBehaviour:
   whatIsGround:
     serializedVersion: 2
     m_Bits: 8
+  dashSpeed: 70
+  dashTime: 0.2
+  dashCooldown: 0.35
 --- !u!95 &540480008
 Animator:
   serializedVersion: 5
@@ -610,6 +613,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   jumping: 0
+  dashing: 0
 --- !u!1 &1191406181
 GameObject:
   m_ObjectHideFlags: 0
