@@ -579,6 +579,7 @@ MonoBehaviour:
   dashSpeed: 70
   dashTime: 0.2
   dashCooldown: 0.35
+  dashEffect: {fileID: 6922255358706813780, guid: c554a6a57d536df49aded915bbf66d0f, type: 3}
 --- !u!95 &540480008
 Animator:
   serializedVersion: 5

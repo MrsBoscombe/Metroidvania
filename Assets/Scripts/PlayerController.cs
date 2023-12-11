@@ -40,6 +40,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float dashSpeed;
     [SerializeField] private float dashTime;
     [SerializeField] private float dashCooldown;
+    [SerializeField] private GameObject dashEffect;
 
     // Singleton Pattern created here
     public static PlayerController Instance;
@@ -101,6 +102,10 @@ public class PlayerController : MonoBehaviour
             StartCoroutine(Dash());
             dashed = true;
         }
+
+        if (Grounded()){
+            dashed = false;
+        }
     }
 
     IEnumerator Dash(){
@@ -109,15 +114,18 @@ public class PlayerController : MonoBehaviour
         anim.SetTrigger("Dashing");
         rb.gravityScale = 0;
         rb.velocity = new Vector2(transform.localScale.x * dashSpeed, 0);
+        if (Grounded()){
+           Instantiate(dashEffect, transform);  // play dash effect if player is on the ground
+        }
         yield return new WaitForSeconds(dashTime);
         // reset to non-dashing
         rb.gravityScale = gravity;
         pState.dashing = false;
         yield return new WaitForSeconds(dashCooldown);
         canDash = true;
-        if (Grounded()){
+/*        if (Grounded()){
             dashed = false;
-        }
+        }*/
     }
     public bool Grounded(){
         if (Physics2D.Raycast(groundCheckPoint.position, Vector2.down, groundCheckY, whatIsGround) || Physics2D.Raycast(groundCheckPoint.position + new Vector3(groundCheckX, 0, 0), Vector2.down, groundCheckY, whatIsGround)
