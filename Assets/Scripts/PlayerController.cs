@@ -33,6 +33,11 @@ public class PlayerController : MonoBehaviour
 
     private bool canDash = true;
     private bool dashed = false;
+
+    private bool attack = false;
+
+    private float timeBetweenAttack = 2.0f;
+    private float timeSinceAttack;
     private float gravity;
     [Space(5)]
 
@@ -72,14 +77,16 @@ public class PlayerController : MonoBehaviour
         UpdateJumpVariables();
         if (pState.dashing)
             return;
-        Flip();    // Original Video has Flip() call after Jump(). I prefer to change the player's direction before he starts moving. 
+        Flip();     
         Move();
         Jump();
         StartDash();
+        Attack();       // Dash was using the left mouse and left shift button - changed it to c only to match Jose.
     }
 
     void GetInputs(){
-        xAxis = Input.GetAxisRaw("Horizontal");
+        xAxis = Input.GetAxisRaw("Horizontal"); //  moving character left and right
+        attack = Input.GetMouseButtonDown(0);   // left mouse button calls Attack
     }
 
     // Flip the player's direction when the user changes direction
@@ -172,6 +179,14 @@ public class PlayerController : MonoBehaviour
         }
         else{
             jumpBufferCounter--;
+        }
+    }
+
+    void Attack(){
+        timeSinceAttack += Time.deltaTime;
+        if (attack && timeSinceAttack > timeBetweenAttack){
+            timeSinceAttack = 0;
+            anim.SetTrigger("Attacking");
         }
     }
 }
