@@ -20,6 +20,7 @@ public class PlayerController : MonoBehaviour
     private int airJumpCounter = 0;
     [SerializeField] private int maxAirJumps; 
     private float xAxis = 0f;
+    private float yAxis;
     private Rigidbody2D rb;
     private Animator anim;
     private PlayerStateList pState;
@@ -31,14 +32,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundCheckX = 0.5f;
     [SerializeField] private LayerMask whatIsGround;
 
-    private bool canDash = true;
-    private bool dashed = false;
-
-    private bool attack = false;
-
-    private float timeBetweenAttack = 2.0f;
-    private float timeSinceAttack;
-    private float gravity;
     [Space(5)]
 
     [Header("Dash Settings")]
@@ -46,7 +39,27 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float dashTime;
     [SerializeField] private float dashCooldown;
     [SerializeField] private GameObject dashEffect;
+    [Space(5)]
 
+    [Header("Attack Settings")]
+    [SerializeField] Transform SideAttackTransform;
+    [SerializeField] Transform UpAttackTransform;
+    [SerializeField] Transform DownAttackTransform;
+    [SerializeField] Vector2 SideAttackArea;
+    [SerializeField] Vector2 UpAttackArea;
+    [SerializeField] Vector2 DownAttackArea;
+    [SerializeField] LayerMask attackableLayer;
+    [SerializeField] float damage;
+    [SerializeField] private GameObject slashEffect;
+
+    private float gravity;
+    
+    private bool canDash = true;
+    private bool dashed = false;
+    private bool attack = false;
+
+    private float timeBetweenAttack = 2.0f;
+    private float timeSinceAttack;
     // Singleton Pattern created here
     public static PlayerController Instance;
 
@@ -86,7 +99,16 @@ public class PlayerController : MonoBehaviour
 
     void GetInputs(){
         xAxis = Input.GetAxisRaw("Horizontal"); //  moving character left and right
+        yAxis = Input.GetAxisRaw("Vertical"); //  moving character up and down
         attack = Input.GetMouseButtonDown(0);   // left mouse button calls Attack
+    }
+
+    private void OnDrawGizmos(){
+        // set the wireframe red
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(SideAttackTransform.position, SideAttackArea);
+        Gizmos.DrawWireCube(UpAttackTransform.position, UpAttackArea);
+        Gizmos.DrawWireCube(DownAttackTransform.position, DownAttackArea);
     }
 
     // Flip the player's direction when the user changes direction
@@ -187,6 +209,45 @@ public class PlayerController : MonoBehaviour
         if (attack && timeSinceAttack > timeBetweenAttack){
             timeSinceAttack = 0;
             anim.SetTrigger("Attacking");
+
+            if (yAxis == 0 || yAxis < 0 && Grounded()){
+                Hit(SideAttackTransform, SideAttackArea);
+                SlashEffectAtAngle(slashEffect, 0, SideAttackTransform);
+                //Instantiate(slashEffect, SideAttackTransform);
+            }
+            else if (yAxis > 0){
+                Hit(UpAttackTransform, UpAttackArea);
+                SlashEffectAtAngle(slashEffect, 80, UpAttackTransform);
+            }
+            else if (yAxis < 0 && !Grounded()){
+                Hit(DownAttackTransform, DownAttackArea);
+                SlashEffectAtAngle(slashEffect, -90, DownAttackTransform);
+            }
         }
+    }
+
+    // In video, the parameters are _attackTransform and _attackArea
+    private void Hit(Transform attackTransform, Vector2 attackArea){
+        // Get an array consisting of all of the objects within the attackArea that are 
+        // assigned to the attackable Layer
+
+        Collider2D[] objectsToHit = Physics2D.OverlapBoxAll(attackTransform.position, attackArea, 0, attackableLayer);
+
+        if (objectsToHit.Length > 0){
+            Debug.Log("Hit");
+        }
+
+        for (int i = 0; i < objectsToHit.Length; i++){
+            if (objectsToHit[i].GetComponent<Enemy>() != null){
+                objectsToHit[i].GetComponent<Enemy>().EnemyHit(damage);
+            }
+        }
+
+    }
+
+    void SlashEffectAtAngle(GameObject slashEffect, int effectAngle, Transform attackTransform){
+        slashEffect = Instantiate(slashEffect, attackTransform);
+        slashEffect.transform.eulerAngles = new Vector3(0, 0, effectAngle);
+        slashEffect.transform.localScale = new Vector2(transform.localScale.x, transform.localScale.y);
     }
 }
